@@ -1,4 +1,4 @@
-# ai-route-planner
+# AI-Project
 
 Python prototype for multi-stop campus pickup-delivery planning on the BITS Pilani vehicle-road graph.
 

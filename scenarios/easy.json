@@ -1,0 +1,18 @@
+{
+  "name": "easy",
+  "description": "Two simple delivery requests starting from Main Gate. Good for verifying correctness and basic visualization.",
+  "start_node": "Main_Gate",
+  "capacity": 2,
+  "requests": [
+    {
+      "id": "r1",
+      "pickup": "Main_Gate",
+      "drop": "Library"
+    },
+    {
+      "id": "r2",
+      "pickup": "Main_Gate",
+      "drop": "SAC"
+    }
+  ]
+}

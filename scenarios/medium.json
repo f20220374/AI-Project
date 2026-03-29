@@ -1,0 +1,23 @@
+{
+  "name": "medium",
+  "description": "Three requests with one in-campus pickup. Good for showing pickup-before-drop behavior and comparing weighted vs unweighted search.",
+  "start_node": "Main_Gate",
+  "capacity": 2,
+  "requests": [
+    {
+      "id": "r1",
+      "pickup": "Main_Gate",
+      "drop": "Library"
+    },
+    {
+      "id": "r2",
+      "pickup": "Main_Gate",
+      "drop": "FD2"
+    },
+    {
+      "id": "r3",
+      "pickup": "UCO_Bank",
+      "drop": "Shiv_Ganga"
+    }
+  ]
+}

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import heapq
 import time
 
@@ -13,22 +11,26 @@ from route_planner.core.metrics import SearchMetrics
 from route_planner.core.problem import RoutePlanningProblem
 
 
-def run_ucs(problem: RoutePlanningProblem) -> SearchResult:
-    """Run Uniform Cost Search on weighted graph distances."""
+def run_ucs(problem):
     start_time = time.perf_counter()
     start_state = problem.initial_state()
 
+    # priority queue ordered by path cost so far
     counter = 0
-    frontier: list[tuple[float, int, object]] = [(0.0, counter, start_state)]
+    frontier = [(0.0, counter, start_state)]
     best_cost = {start_state: 0.0}
     parent = {}
-    explored_nodes: list[str] = []
+    explored_nodes = []
     nodes_expanded = 0
     max_frontier_size = 1
 
     while frontier:
-        max_frontier_size = max(max_frontier_size, len(frontier))
+        if len(frontier) > max_frontier_size:
+            max_frontier_size = len(frontier)
+
         path_cost, _idx, state = heapq.heappop(frontier)
+
+        # skip if we already found a cheaper way to this state
         if path_cost > best_cost.get(state, float("inf")):
             continue
 
@@ -36,7 +38,10 @@ def run_ucs(problem: RoutePlanningProblem) -> SearchResult:
         nodes_expanded += 1
 
         if problem.is_goal(state):
-            state_path = reconstruct_state_path(parent, start_state, state) if state != start_state else [start_state]
+            if state != start_state:
+                state_path = reconstruct_state_path(parent, start_state, state)
+            else:
+                state_path = [start_state]
             node_path = node_path_from_states(state_path)
             runtime_ms = (time.perf_counter() - start_time) * 1000
             return SearchResult(

@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-from typing import Callable
 import heapq
 import time
 
@@ -12,30 +9,29 @@ from route_planner.algorithms.common import (
 )
 from route_planner.core.metrics import SearchMetrics
 from route_planner.core.problem import RoutePlanningProblem
-from route_planner.models.state import SearchState
 
 
-Heuristic = Callable[[RoutePlanningProblem, SearchState], float]
-
-
-def run_astar(problem: RoutePlanningProblem, heuristic: Heuristic) -> SearchResult:
-    """Run A* using weighted edges and supplied heuristic."""
+def run_astar(problem, heuristic):
+    # f(n) = g(n) + h(n), expand lowest f first
     start_time = time.perf_counter()
     start_state = problem.initial_state()
 
     counter = 0
-    frontier: list[tuple[float, float, int, object]] = [
-        (heuristic(problem, start_state), 0.0, counter, start_state)
-    ]
+    h0 = heuristic(problem, start_state)
+    frontier = [(h0, 0.0, counter, start_state)]
     best_g = {start_state: 0.0}
     parent = {}
-    explored_nodes: list[str] = []
+    explored_nodes = []
     nodes_expanded = 0
     max_frontier_size = 1
 
     while frontier:
-        max_frontier_size = max(max_frontier_size, len(frontier))
-        _f_cost, g_from_heap, _idx, state = heapq.heappop(frontier)
+        if len(frontier) > max_frontier_size:
+            max_frontier_size = len(frontier)
+
+        _f, g_from_heap, _idx, state = heapq.heappop(frontier)
+
+        # outdated entry - skip
         best_known = best_g.get(state)
         if best_known is None or g_from_heap > best_known:
             continue
@@ -45,7 +41,10 @@ def run_astar(problem: RoutePlanningProblem, heuristic: Heuristic) -> SearchResu
         nodes_expanded += 1
 
         if problem.is_goal(state):
-            state_path = reconstruct_state_path(parent, start_state, state) if state != start_state else [start_state]
+            if state != start_state:
+                state_path = reconstruct_state_path(parent, start_state, state)
+            else:
+                state_path = [start_state]
             node_path = node_path_from_states(state_path)
             runtime_ms = (time.perf_counter() - start_time) * 1000
             return SearchResult(
@@ -65,14 +64,14 @@ def run_astar(problem: RoutePlanningProblem, heuristic: Heuristic) -> SearchResu
             )
 
         for action, next_state in problem.successors(state, weighted=True):
-            tentative_g = g_cost + action.edge_cost
-            if tentative_g >= best_g.get(next_state, float("inf")):
+            new_g = g_cost + action.edge_cost
+            if new_g >= best_g.get(next_state, float("inf")):
                 continue
-            best_g[next_state] = tentative_g
+            best_g[next_state] = new_g
             parent[next_state] = (state, action.edge_cost)
             counter += 1
-            f_cost = tentative_g + heuristic(problem, next_state)
-            heapq.heappush(frontier, (f_cost, tentative_g, counter, next_state))
+            f = new_g + heuristic(problem, next_state)
+            heapq.heappush(frontier, (f, new_g, counter, next_state))
 
     runtime_ms = (time.perf_counter() - start_time) * 1000
     return SearchResult(

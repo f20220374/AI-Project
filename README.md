@@ -1,72 +1,91 @@
-# AI-Project
+# CS F407 AI Assignment — Route Planner (Project 3, L2)
 
-Python prototype for multi-stop campus pickup-delivery planning on the BITS Pilani vehicle-road graph.
+Campus pickup-delivery route planner on the BITS Pilani vehicle-road graph.
+Implements BFS, UCS, Greedy, and A* on an augmented state space.
+
+---
+
+## How the graph was made
+
+The campus graph (`data/campus_graph.json`) was built using the campus map image (`assets/campus_map.png`).
+We used an AI tool to identify node positions and rough distances from the image, then went through
+the JSON by hand to fix coordinates, remove pedestrian-only paths (NAB rotunda, Snake Path, hostel stairways),
+and double-check edge weights against known distances. So the base was AI-assisted but the final graph
+is manually verified.
+
+The visualization UI (`src/route_planner/ui/`) was also scaffolded with an AI tool and then adjusted to
+fit what we needed — color coding, the embedded tkinter dashboard, and the side-by-side compare view.
+
+The search algorithms, heuristics, problem formulation, and state model were written by us from scratch.
+
+---
 
 ## Features
 
-- Search algorithms implemented from scratch:
-	- BFS (unweighted expansion)
-	- UCS (weighted)
-	- Greedy Best-First Search (weighted + heuristic)
-	- A* (weighted + heuristic)
-- Heuristics:
-	- `nearest_remaining_distance`
-	- `mst_plus_connectors`
-- State representation:
-	- `current_node`, `carrying`, `picked`, `delivered`
-- Automatic pickup/drop semantics with capacity handling
-- Visualization with campus map background and graph overlay
-- Animated exploration + final route highlighting
-- Comparison mode running all 4 algorithms on the same scenario
-- Metrics shown per run:
-	- weighted path cost
-	- hops
-	- nodes expanded
-	- runtime
-	- max frontier size
+- 4 search algorithms written from scratch:
+  - BFS (unit edge costs)
+  - UCS (weighted, optimal)
+  - Greedy Best-First (heuristic only, fast but not optimal)
+  - A* (optimal, uses either h1 or h2)
+- 2 admissible heuristics:
+  - `nearest_remaining_distance` (h1)
+  - `mst_plus_connectors` (h2, dominates h1)
+- State: `(current_node, carrying, picked, delivered)`
+- Auto pickup/drop at each node with capacity=2
+- Visualization on top of the actual campus map:
+  - green star = start
+  - blue triangles = pickup nodes
+  - red triangles = drop nodes
+  - grey dots = explored nodes
+  - yellow line = final path
+- Animated search + side-by-side algorithm comparison
+- Interactive desktop UI (tkinter + matplotlib)
+- Metrics per run: cost, hops, nodes expanded, runtime, max frontier size
+
+---
 
 ## Project structure
 
 ```
-ai-route-planner/
-	assets/
-		campus_map.png
-	data/
-		campus_graph.json
-	scenarios/
-		easy.json
-		medium.json
-		hard.json
-	src/route_planner/
-		algorithms/
-			astar.py
-			bfs.py
-			common.py
-			greedy.py
-			ucs.py
-		core/
-			metrics.py
-			problem.py
-		io/
-			loaders.py
-		models/
-			graph.py
-			scenario.py
-			state.py
-		ui/
-			app.py
-			renderer.py
-		heuristics.py
-		main.py
-	main.py
-	pyproject.toml
-	AGENTS.md
-	README.md
+repo_clone/
+  assets/
+    campus_map.png          (background image, visualization only)
+  data/
+    campus_graph.json       (48 nodes, ~75 edges, manually verified)
+  scenarios/
+    easy.json               (2 requests)
+    medium.json             (3 requests, one in-campus pickup)
+    hard.json               (5 requests, mixed zones)
+  src/route_planner/
+    algorithms/
+      astar.py
+      bfs.py
+      common.py
+      greedy.py
+      ucs.py
+    core/
+      metrics.py
+      problem.py
+    io/
+      loaders.py
+    models/
+      graph.py
+      scenario.py
+      state.py
+    ui/
+      app.py
+      dashboard.py
+      renderer.py
+    heuristics.py
+    main.py
+  main.py
+  pyproject.toml
+  README.md
 ```
 
-## Setup
+---
 
-From project root:
+## Setup
 
 ```bash
 python3 -m venv .venv
@@ -74,52 +93,50 @@ source .venv/bin/activate
 pip install matplotlib
 ```
 
-No external search/pathfinding library is used.
+No external search or pathfinding library is used for the algorithms.
+
+---
 
 ## Usage
 
-### List scenarios
+### List available scenarios
 
 ```bash
 python3 main.py --list-scenarios
 ```
 
-### Single algorithm run
+### Run a single algorithm
 
 ```bash
 python3 main.py --scenario easy.json --mode single --algorithm astar --heuristic mst
 ```
 
-### Compare all algorithms on one scenario
+### Compare all algorithms
 
 ```bash
-python3 main.py --scenario hard.json --mode compare --heuristic nearest
+python3 main.py --scenario hard.json --mode compare --heuristic mst
 ```
 
-### Interactive visualizer dashboard
+### With visualization (animated map)
+
+```bash
+python3 main.py --scenario medium.json --mode compare --visualize --delay 0.02
+```
+
+### Interactive UI
 
 ```bash
 python3 main.py --mode ui
 ```
 
-This opens a desktop control panel with:
-- scenario / algorithm / heuristic dropdowns
-- Run Selected (single algorithm)
-- Compare All (BFS/UCS/Greedy/A*)
-- optional animation toggle + delay slider
-- metrics + route output inside the dashboard
+Opens a desktop window with scenario/algorithm/heuristic dropdowns, run buttons,
+live map, and metrics output panel.
 
-### Visualization / animation
+---
 
-Add `--visualize` to `single` or `compare` mode:
+## Behavior notes
 
-```bash
-python3 main.py --scenario medium.json --mode single --algorithm ucs --visualize --delay 0.02
-```
-
-## Notes on behavior
-
-- `data/campus_graph.json` is the only authoritative search graph.
-- `assets/campus_map.png` is visualization-only.
-- BFS expands using unit edge costs; all runs still report final weighted route cost from graph edge weights.
-- Goal state is when all requests are delivered; no return to `Main_Gate` is required.
+- `data/campus_graph.json` is the only search graph used — the PNG is for display only.
+- BFS searches with unit edge costs but the output still shows the real weighted path cost.
+- Goal = all requests delivered. No need to return to start.
+- Drop happens before pickup at each node (so a slot frees up before a new item is loaded).

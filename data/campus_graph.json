@@ -5,13 +5,7 @@
     "capacity_default": 2,
     "directed": false,
     "map_width_m": 1500,
-    "map_height_m": 1200,
-    "notes": [
-      "NAB Rotunda is pedestrian only and removed from the vehicle graph",
-      "All edges are bidirectional vehicle roads",
-      "Coordinates are metres from the top-left of the campus map",
-      "Campus map image is for visualization only"
-    ]
+    "map_height_m": 1200
   },
   "nodes": [
     { "id": 0, "key": "Main_Gate", "label": "Main Gate", "x": 475, "y": 1154, "type": "L" },

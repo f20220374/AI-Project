@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from collections import deque
 import time
 
@@ -13,26 +11,31 @@ from route_planner.core.metrics import SearchMetrics
 from route_planner.core.problem import RoutePlanningProblem
 
 
-def run_bfs(problem: RoutePlanningProblem) -> SearchResult:
-    """Run BFS on unweighted edge cost = 1 behavior."""
+def run_bfs(problem):
     start_time = time.perf_counter()
     start_state = problem.initial_state()
 
+    # BFS uses a queue (FIFO), all edges treated as cost 1
     frontier = deque([start_state])
     visited = {start_state}
     parent = {}
-    explored_nodes: list[str] = []
+    explored_nodes = []
     nodes_expanded = 0
     max_frontier_size = 1
 
     while frontier:
-        max_frontier_size = max(max_frontier_size, len(frontier))
+        if len(frontier) > max_frontier_size:
+            max_frontier_size = len(frontier)
+
         state = frontier.popleft()
         explored_nodes.append(state.current_node)
         nodes_expanded += 1
 
         if problem.is_goal(state):
-            state_path = reconstruct_state_path(parent, start_state, state) if state != start_state else [start_state]
+            if state != start_state:
+                state_path = reconstruct_state_path(parent, start_state, state)
+            else:
+                state_path = [start_state]
             node_path = node_path_from_states(state_path)
             runtime_ms = (time.perf_counter() - start_time) * 1000
             return SearchResult(

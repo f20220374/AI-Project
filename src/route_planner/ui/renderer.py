@@ -1,146 +1,202 @@
-from __future__ import annotations
-
 from pathlib import Path
-from typing import Sequence
-
-from route_planner.algorithms.common import SearchResult
-from route_planner.core.metrics import SearchMetrics
-from route_planner.models.graph import CampusGraph
-
 
 try:
     import matplotlib.image as mpimg
     import matplotlib.pyplot as plt
-except Exception:  # pragma: no cover - runtime environment dependent
+except Exception:
     mpimg = None
     plt = None
 
 
 class MapRenderer:
-    """Visualization adapter for campus map + graph overlays.
 
-    `assets/campus_map.png` is treated as background visualization only.
-    """
-
-    def __init__(self, map_image_path: Path) -> None:
+    def __init__(self, map_image_path):
         self.map_image_path = map_image_path
 
-    def draw_static(self, graph: CampusGraph, title: str = "Campus Graph", show: bool = True) -> None:
-        fig, ax = self._build_base_figure(graph, title)
-        if show:
-            plt.show()
-        else:
-            plt.close(fig)
-
-    def animate_exploration(
-        self,
-        graph: CampusGraph,
-        result: SearchResult,
-        delay_seconds: float = 0.02,
-        show: bool = True,
-    ) -> None:
-        title = f"{result.algorithm}: Search Exploration"
-        fig, ax = self._build_base_figure(graph, title)
-        metrics_text = self._format_metrics(result.metrics)
-
-        explored_ids = [graph.node_id(node) for node in result.explored_nodes if node in graph.node_id_by_key]
-        route_ids = [graph.node_id(node) for node in result.node_path if node in graph.node_id_by_key]
-
-        visited_scatter = ax.scatter([], [], c="#f59e0b", s=24, label="Explored")
-        route_line, = ax.plot([], [], color="#ef4444", linewidth=3, label="Final Route")
-
-        ax.text(
-            0.01,
-            0.99,
-            metrics_text,
-            transform=ax.transAxes,
-            va="top",
-            ha="left",
-            fontsize=9,
-            bbox={"facecolor": "white", "alpha": 0.85, "edgecolor": "#d1d5db"},
-        )
-
-        visited_xy: list[tuple[float, float]] = []
-        for node_id in explored_ids:
-            node = graph.nodes_by_id[node_id]
-            visited_xy.append((node.x, node.y))
-            visited_scatter.set_offsets(visited_xy)
-            plt.pause(delay_seconds)
-
-        if len(route_ids) >= 2:
-            xs = [graph.nodes_by_id[node_id].x for node_id in route_ids]
-            ys = [graph.nodes_by_id[node_id].y for node_id in route_ids]
-            route_line.set_data(xs, ys)
-
-        ax.legend(loc="lower right")
-        if show:
-            plt.show()
-        else:
-            plt.close(fig)
-
-    def draw_final_route(self, graph: CampusGraph, node_path: Sequence[str], show: bool = True) -> None:
-        fig, ax = self._build_base_figure(graph, "Final Route")
-        route_ids = [graph.node_id(node) for node in node_path]
-        if len(route_ids) >= 2:
-            xs = [graph.nodes_by_id[node_id].x for node_id in route_ids]
-            ys = [graph.nodes_by_id[node_id].y for node_id in route_ids]
-            ax.plot(xs, ys, color="#ef4444", linewidth=3, label="Route")
-            ax.legend(loc="lower right")
-        if show:
-            plt.show()
-        else:
-            plt.close(fig)
-
-    def _build_base_figure(self, graph: CampusGraph, title: str):
+    def animate_exploration(self, graph, result, delay_seconds=0.02, show=True,
+                            start_node=None, pickup_nodes=None, drop_nodes=None):
         if plt is None:
-            raise RuntimeError("matplotlib is required for visualization. Install with: pip install matplotlib")
+            raise RuntimeError("matplotlib not installed. Run: pip install matplotlib")
+
+        pickup_nodes = pickup_nodes or []
+        drop_nodes = drop_nodes or []
 
         fig, ax = plt.subplots(figsize=(10, 8))
         width, height = self._draw_background(ax, graph)
+        self._draw_edges(ax, graph)
+        self._draw_base_nodes(ax, graph)
 
+        # mark pickup/drop/start nodes
+        self._mark_nodes(ax, graph, pickup_nodes, color="blue", size=80, label="Pickup", marker="^")
+        self._mark_nodes(ax, graph, drop_nodes, color="red", size=80, label="Drop", marker="v")
+        if start_node and start_node in graph.node_id_by_key:
+            nid = graph.node_id(start_node)
+            n = graph.nodes_by_id[nid]
+            ax.scatter([n.x], [n.y], c="green", s=120, zorder=8, label="Start", marker="*")
+
+        # explored = grey, final path = yellow
+        explored_ids = [graph.node_id(n) for n in result.explored_nodes if n in graph.node_id_by_key]
+        grey_scatter = ax.scatter([], [], c="grey", s=22, alpha=0.7, zorder=4, label="Explored")
+        route_line, = ax.plot([], [], color="yellow", linewidth=3, zorder=6, label="Path")
+
+        metrics_str = (
+            f"cost: {result.metrics.weighted_path_cost:.0f}  "
+            f"hops: {result.metrics.hops}  "
+            f"expanded: {result.metrics.nodes_expanded}  "
+            f"time: {result.metrics.runtime_ms:.1f}ms"
+        )
+        ax.set_title(f"{result.algorithm}   {metrics_str}", fontsize=10)
+
+        visited_xy = []
+        for nid in explored_ids:
+            n = graph.nodes_by_id[nid]
+            visited_xy.append((n.x, n.y))
+            grey_scatter.set_offsets(visited_xy)
+            plt.pause(delay_seconds)
+
+        # show final route
+        route_ids = [graph.node_id(n) for n in result.node_path if n in graph.node_id_by_key]
+        if len(route_ids) >= 2:
+            xs = [graph.nodes_by_id[i].x for i in route_ids]
+            ys = [graph.nodes_by_id[i].y for i in route_ids]
+            route_line.set_data(xs, ys)
+
+        ax.set_xlim(0, width)
+        ax.set_ylim(height, 0)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.legend(loc="lower right", fontsize=8)
+        if show:
+            plt.show()
+        else:
+            plt.close(fig)
+
+    def draw_compare(self, graph, results, show=True,
+                     start_node=None, pickup_nodes=None, drop_nodes=None):
+        # show all algorithms side by side
+        if plt is None:
+            raise RuntimeError("matplotlib not installed.")
+
+        pickup_nodes = pickup_nodes or []
+        drop_nodes = drop_nodes or []
+        total = len(results)
+        cols = 2
+        rows = (total + 1) // cols
+
+        fig, axes = plt.subplots(rows, cols, figsize=(14, 6 * rows))
+        if total == 1:
+            axes = [[axes]]
+        elif rows == 1:
+            axes = [list(axes)]
+
+        for idx, result in enumerate(results):
+            r, c = divmod(idx, cols)
+            ax = axes[r][c]
+            width, height = self._draw_background(ax, graph)
+            self._draw_edges(ax, graph)
+            self._draw_base_nodes(ax, graph)
+
+            # grey for explored
+            explored_ids = [graph.node_id(n) for n in result.explored_nodes if n in graph.node_id_by_key]
+            if explored_ids:
+                ex = [graph.nodes_by_id[i].x for i in explored_ids]
+                ey = [graph.nodes_by_id[i].y for i in explored_ids]
+                ax.scatter(ex, ey, c="grey", s=16, alpha=0.6, zorder=4)
+
+            # yellow for path
+            route_ids = [graph.node_id(n) for n in result.node_path if n in graph.node_id_by_key]
+            if len(route_ids) >= 2:
+                xs = [graph.nodes_by_id[i].x for i in route_ids]
+                ys = [graph.nodes_by_id[i].y for i in route_ids]
+                ax.plot(xs, ys, color="yellow", linewidth=2.5, zorder=6)
+
+            self._mark_nodes(ax, graph, pickup_nodes, color="blue", size=60, label="Pickup", marker="^")
+            self._mark_nodes(ax, graph, drop_nodes, color="red", size=60, label="Drop", marker="v")
+            if start_node and start_node in graph.node_id_by_key:
+                nid = graph.node_id(start_node)
+                n_obj = graph.nodes_by_id[nid]
+                ax.scatter([n_obj.x], [n_obj.y], c="green", s=100, zorder=8, marker="*")
+
+            metrics_str = (
+                f"cost={result.metrics.weighted_path_cost:.0f}  "
+                f"exp={result.metrics.nodes_expanded}  "
+                f"{result.metrics.runtime_ms:.1f}ms"
+            )
+            solved = "ok" if result.solved else "FAIL"
+            ax.set_title(f"{result.algorithm} ({solved})\n{metrics_str}", fontsize=9)
+            ax.set_xlim(0, width)
+            ax.set_ylim(height, 0)
+            ax.set_xticks([])
+            ax.set_yticks([])
+
+        # hide empty subplots if odd number of algorithms
+        for idx in range(total, rows * cols):
+            r, c = divmod(idx, cols)
+            axes[r][c].set_visible(False)
+
+        fig.suptitle("Algorithm Comparison", fontsize=13)
+        fig.tight_layout()
+        if show:
+            plt.show()
+        else:
+            plt.close(fig)
+
+    def draw_static(self, graph, title="Campus Graph", show=True):
+        if plt is None:
+            raise RuntimeError("matplotlib not installed.")
+        fig, ax = plt.subplots(figsize=(10, 8))
+        width, height = self._draw_background(ax, graph)
+        self._draw_edges(ax, graph)
+        self._draw_base_nodes(ax, graph)
+        for node in graph.nodes_by_id.values():
+            ax.text(node.x + 5, node.y - 5, node.key, fontsize=6, color="#f0f0f0")
+        ax.set_title(title)
+        ax.set_xlim(0, width)
+        ax.set_ylim(height, 0)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        if show:
+            plt.show()
+        else:
+            plt.close(fig)
+
+    def _draw_edges(self, ax, graph):
         for from_id, neighbors in graph.adjacency.items():
             from_node = graph.nodes_by_id[from_id]
             for to_id, _cost in neighbors:
                 if to_id < from_id:
                     continue
                 to_node = graph.nodes_by_id[to_id]
-                ax.plot([from_node.x, to_node.x], [from_node.y, to_node.y], color="#9ca3af", linewidth=1.0, alpha=0.7)
+                ax.plot([from_node.x, to_node.x], [from_node.y, to_node.y],
+                        color="#9ca3af", linewidth=1.0, alpha=0.6, zorder=2)
 
-        xs = [node.x for node in graph.nodes_by_id.values()]
-        ys = [node.y for node in graph.nodes_by_id.values()]
-        colors = ["#2563eb" if node.type == "L" else "#14b8a6" for node in graph.nodes_by_id.values()]
-        ax.scatter(xs, ys, c=colors, s=30, edgecolors="white", linewidths=0.5, label="Nodes")
+    def _draw_base_nodes(self, ax, graph):
+        xs = [n.x for n in graph.nodes_by_id.values()]
+        ys = [n.y for n in graph.nodes_by_id.values()]
+        colors = ["#2563eb" if n.type == "L" else "#14b8a6" for n in graph.nodes_by_id.values()]
+        ax.scatter(xs, ys, c=colors, s=25, edgecolors="white", linewidths=0.4, zorder=3)
 
-        for node in graph.nodes_by_id.values():
-            ax.text(node.x + 6, node.y - 6, node.key, fontsize=6, color="#111827")
+    def _mark_nodes(self, ax, graph, node_keys, color, size, label, marker="o"):
+        xs, ys = [], []
+        for key in node_keys:
+            if key in graph.node_id_by_key:
+                n = graph.nodes_by_id[graph.node_id(key)]
+                xs.append(n.x)
+                ys.append(n.y)
+        if xs:
+            ax.scatter(xs, ys, c=color, s=size, zorder=7, label=label,
+                       marker=marker, edgecolors="white", linewidths=0.5)
 
-        ax.set_title(title)
-        ax.set_xlim(0, width)
-        ax.set_ylim(height, 0)
-        ax.set_xlabel("X")
-        ax.set_ylabel("Y")
-        return fig, ax
-
-    def _draw_background(self, ax, graph: CampusGraph) -> tuple[float, float]:
+    def _draw_background(self, ax, graph):
+        ax.set_facecolor("#0b1220")
         if mpimg is not None and self.map_image_path.exists():
             try:
-                image = mpimg.imread(self.map_image_path)
-                height, width = image.shape[0], image.shape[1]
-                ax.imshow(image, extent=[0, width, height, 0])
-                return float(width), float(height)
+                img = mpimg.imread(self.map_image_path)
+                h, w = img.shape[0], img.shape[1]
+                ax.imshow(img, extent=[0, w, h, 0], zorder=1)
+                return float(w), float(h)
             except Exception:
                 pass
-
-        max_x = max(node.x for node in graph.nodes_by_id.values()) + 80
-        max_y = max(node.y for node in graph.nodes_by_id.values()) + 80
+        max_x = max(n.x for n in graph.nodes_by_id.values()) + 80
+        max_y = max(n.y for n in graph.nodes_by_id.values()) + 80
         return max_x, max_y
-
-    @staticmethod
-    def _format_metrics(metrics: SearchMetrics) -> str:
-        return (
-            f"weighted cost: {metrics.weighted_path_cost:.1f}\n"
-            f"hops: {metrics.hops}\n"
-            f"expanded: {metrics.nodes_expanded}\n"
-            f"runtime (ms): {metrics.runtime_ms:.2f}\n"
-            f"max frontier: {metrics.max_frontier_size}"
-        )

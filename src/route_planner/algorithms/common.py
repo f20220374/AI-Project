@@ -1,7 +1,4 @@
-from __future__ import annotations
-
 from dataclasses import dataclass, field
-from typing import Dict, List, Tuple
 
 from route_planner.core.metrics import SearchMetrics
 from route_planner.models.graph import CampusGraph
@@ -12,33 +9,27 @@ from route_planner.models.state import SearchState
 class SearchResult:
     algorithm: str
     solved: bool
-    state_path: List[SearchState] = field(default_factory=list)
-    node_path: List[str] = field(default_factory=list)
-    explored_nodes: List[str] = field(default_factory=list)
+    state_path: list = field(default_factory=list)
+    node_path: list = field(default_factory=list)
+    explored_nodes: list = field(default_factory=list)
     metrics: SearchMetrics = field(default_factory=SearchMetrics)
     message: str = ""
 
 
-ParentMap = Dict[SearchState, Tuple[SearchState, float]]
-
-
-def reconstruct_state_path(
-    parent: ParentMap,
-    start_state: SearchState,
-    goal_state: SearchState,
-) -> List[SearchState]:
-    path: List[SearchState] = [goal_state]
-    cursor = goal_state
-    while cursor != start_state:
-        cursor = parent[cursor][0]
-        path.append(cursor)
+def reconstruct_state_path(parent, start_state, goal_state):
+    # walk back through parent map to rebuild the path
+    path = [goal_state]
+    cur = goal_state
+    while cur != start_state:
+        cur = parent[cur][0]
+        path.append(cur)
     path.reverse()
     return path
 
 
-def node_path_from_states(state_path: List[SearchState]) -> List[str]:
-    return [state.current_node for state in state_path]
+def node_path_from_states(state_path):
+    return [s.current_node for s in state_path]
 
 
-def weighted_cost_from_node_path(graph: CampusGraph, node_path: List[str]) -> float:
+def weighted_cost_from_node_path(graph, node_path):
     return graph.weighted_path_cost(node_path)

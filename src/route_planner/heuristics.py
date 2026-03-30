@@ -1,49 +1,45 @@
-from __future__ import annotations
-
 import heapq
 
-from route_planner.core.problem import RoutePlanningProblem
-from route_planner.models.state import SearchState
 
-
-def nearest_remaining_distance(problem: RoutePlanningProblem, state: SearchState) -> float:
-    """Admissible lower bound to nearest actionable remaining service node."""
-    remaining_nodes = problem.actionable_service_nodes(state)
-    if not remaining_nodes:
+def nearest_remaining_distance(problem, state):
+    # h1: distance to nearest unvisited service node
+    remaining = problem.actionable_service_nodes(state)
+    if not remaining:
         return 0.0
-    return min(problem.shortest_distance(state.current_node, node) for node in remaining_nodes)
+    return min(problem.shortest_distance(state.current_node, n) for n in remaining)
 
 
-def mst_plus_connectors(problem: RoutePlanningProblem, state: SearchState) -> float:
-    """Admissible lower bound using connector from current node + MST of remaining nodes."""
-    remaining_nodes = problem.mandatory_remaining_nodes(state)
-    if not remaining_nodes:
+def mst_plus_connectors(problem, state):
+    # h2: connector from current node + MST over all remaining nodes
+    # stronger than h1 because it considers all remaining stops together
+    remaining = problem.mandatory_remaining_nodes(state)
+    if not remaining:
         return 0.0
 
-    nodes = sorted(remaining_nodes)
-    connector = min(problem.shortest_distance(state.current_node, node) for node in nodes)
+    nodes = sorted(remaining)
+    connector = min(problem.shortest_distance(state.current_node, n) for n in nodes)
     if len(nodes) == 1:
         return connector
 
-    mst_cost = _prim_mst_cost(problem, nodes)
-    return connector + mst_cost
+    return connector + _prim_mst(problem, nodes)
 
 
-def _prim_mst_cost(problem: RoutePlanningProblem, nodes: list[str]) -> float:
+def _prim_mst(problem, nodes):
+    # Prim's MST on remaining nodes using precomputed shortest distances
     visited = {nodes[0]}
-    heap: list[tuple[float, str]] = []
-    for node in nodes[1:]:
-        heapq.heappush(heap, (problem.shortest_distance(nodes[0], node), node))
+    heap = []
+    for n in nodes[1:]:
+        heapq.heappush(heap, (problem.shortest_distance(nodes[0], n), n))
 
     total = 0.0
-    targets = set(nodes[1:])
-    while targets:
-        cost, to_node = heapq.heappop(heap)
-        if to_node in visited:
+    remaining = set(nodes[1:])
+    while remaining:
+        cost, node = heapq.heappop(heap)
+        if node in visited:
             continue
-        visited.add(to_node)
-        targets.remove(to_node)
+        visited.add(node)
+        remaining.remove(node)
         total += cost
-        for node in targets:
-            heapq.heappush(heap, (problem.shortest_distance(to_node, node), node))
+        for other in remaining:
+            heapq.heappush(heap, (problem.shortest_distance(node, other), other))
     return total

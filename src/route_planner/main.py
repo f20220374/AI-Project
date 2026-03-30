@@ -1,8 +1,5 @@
-from __future__ import annotations
-
 import argparse
 from pathlib import Path
-from typing import Iterable
 
 from route_planner.io.loaders import load_graph, load_scenario, validate_scenario_against_graph
 from route_planner.ui.app import RoutePlannerApp, format_metrics_table
@@ -14,77 +11,34 @@ DEFAULT_GRAPH = PROJECT_ROOT / "data/campus_graph.json"
 DEFAULT_SCENARIOS_DIR = PROJECT_ROOT / "scenarios"
 
 
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Campus route-planning prototype")
-    parser.add_argument("--scenario", default="easy.json", help="Scenario file inside scenarios/")
-    parser.add_argument(
-        "--mode",
-        default="single",
-        choices=["single", "compare", "ui"],
-        help="single: one algorithm, compare: all algorithms, ui: launch UI shell",
-    )
-    parser.add_argument(
-        "--algorithm",
-        default="astar",
-        choices=["bfs", "ucs", "greedy", "astar"],
-        help="Algorithm for single mode",
-    )
-    parser.add_argument(
-        "--heuristic",
-        default="mst",
-        choices=["nearest", "mst"],
-        help="Heuristic for Greedy/A*",
-    )
-    parser.add_argument(
-        "--visualize",
-        action="store_true",
-        help="Animate exploration and final route on campus map",
-    )
-    parser.add_argument(
-        "--delay",
-        type=float,
-        default=0.02,
-        help="Animation delay per expanded node in seconds",
-    )
-    parser.add_argument(
-        "--list-scenarios",
-        action="store_true",
-        help="List available scenarios and exit",
-    )
+def parse_args():
+    parser = argparse.ArgumentParser(description="Campus route planner")
+    parser.add_argument("--scenario", default="easy.json", help="scenario file to use")
+    parser.add_argument("--mode", default="single", choices=["single", "compare", "ui"])
+    parser.add_argument("--algorithm", default="astar", choices=["bfs", "ucs", "greedy", "astar"])
+    parser.add_argument("--heuristic", default="mst", choices=["nearest", "mst"])
+    parser.add_argument("--visualize", action="store_true", help="show map animation")
+    parser.add_argument("--delay", type=float, default=0.02, help="animation delay in seconds")
+    parser.add_argument("--list-scenarios", action="store_true")
     return parser.parse_args()
 
 
-def available_scenarios(scenarios_dir: Path) -> list[str]:
-    return sorted(path.name for path in scenarios_dir.glob("*.json"))
-
-
-def print_result_details(result) -> None:
+def print_result(result):
     print(f"\n[{result.algorithm}] solved={result.solved}")
-    print(f"Path: {' -> '.join(result.node_path) if result.node_path else '(none)'}")
-    print(f"weighted path cost: {result.metrics.weighted_path_cost:.1f}")
+    print(f"path: {' -> '.join(result.node_path) if result.node_path else '(none)'}")
+    print(f"cost: {result.metrics.weighted_path_cost:.1f}")
     print(f"hops: {result.metrics.hops}")
-    print(f"nodes expanded: {result.metrics.nodes_expanded}")
-    print(f"runtime (ms): {result.metrics.runtime_ms:.2f}")
-    print(f"max frontier size: {result.metrics.max_frontier_size}")
+    print(f"expanded: {result.metrics.nodes_expanded}")
+    print(f"time: {result.metrics.runtime_ms:.2f}ms")
+    print(f"max frontier: {result.metrics.max_frontier_size}")
 
 
-def choose_from_prompt(options: Iterable[str], label: str) -> str:
-    values = list(options)
-    print(f"Select {label}:")
-    for index, value in enumerate(values, start=1):
-        print(f"  {index}. {value}")
-    raw = input("Enter number: ").strip()
-    selected_index = int(raw) - 1
-    if selected_index < 0 or selected_index >= len(values):
-        raise ValueError(f"Invalid {label} selection")
-    return values[selected_index]
-
-
-def main() -> None:
+def main():
     args = parse_args()
+
     if args.list_scenarios:
-        for name in available_scenarios(DEFAULT_SCENARIOS_DIR):
-            print(name)
+        for f in sorted(p.name for p in DEFAULT_SCENARIOS_DIR.glob("*.json")):
+            print(f)
         return
 
     if args.mode == "ui":
@@ -96,15 +50,15 @@ def main() -> None:
     scenario = load_scenario(DEFAULT_SCENARIOS_DIR / args.scenario)
     errors = validate_scenario_against_graph(scenario, graph)
     if errors:
-        raise SystemExit("Scenario validation failed:\n- " + "\n- ".join(errors))
+        raise SystemExit("Validation errors:\n- " + "\n- ".join(errors))
 
     app = RoutePlannerApp()
     app.config.animation_delay_seconds = args.delay
 
-    print(f"Loaded graph: {len(graph.nodes_by_id)} nodes")
-    print(f"Loaded scenario: {scenario.name} ({len(scenario.requests)} requests)")
+    print(f"graph: {len(graph.nodes_by_id)} nodes")
+    print(f"scenario: {scenario.name} ({len(scenario.requests)} requests)")
 
-    if args.mode in {"single", "ui"}:
+    if args.mode == "single":
         result = app.run_single(
             graph=graph,
             scenario=scenario,
@@ -112,19 +66,17 @@ def main() -> None:
             heuristic_name=args.heuristic,
             visualize=args.visualize,
         )
-        print_result_details(result)
-        return
+        print_result(result)
 
-    if args.mode == "compare":
+    elif args.mode == "compare":
         results = app.run_comparison(
             graph=graph,
             scenario=scenario,
             heuristic_name=args.heuristic,
             visualize=args.visualize,
         )
-        print("\nComparison metrics")
+        print("\nComparison:")
         print(format_metrics_table(results))
-        return
 
 
 if __name__ == "__main__":

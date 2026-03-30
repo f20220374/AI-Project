@@ -129,8 +129,27 @@ python3 main.py --scenario medium.json --mode compare --visualize --delay 0.02
 python3 main.py --mode ui
 ```
 
-Opens a desktop window with scenario/algorithm/heuristic dropdowns, run buttons,
-live map, and metrics output panel.
+This opens a desktop control panel with:
+- difficulty / case / algorithm / heuristic dropdowns
+- Run Selected (single algorithm)
+- Compare All (BFS/UCS/Greedy/A*)
+- Run All Cases (batch benchmark over selected difficulty or all)
+- optional animation toggle + delay slider
+- metrics + route output inside the dashboard
+
+### Scenario case bank
+
+- Easy: `easy_01.json` ... `easy_10.json`
+- Medium: `medium_01.json` ... `medium_10.json`
+- Hard: `hard_01.json` ... `hard_10.json`
+
+When you use **Run All Cases**, the dashboard reports per-algorithm aggregate stats:
+- average/min/max weighted path cost
+- average/min/max nodes expanded
+- average/min/max runtime
+- solved ratio
+
+### Visualization / animation
 
 ---
 

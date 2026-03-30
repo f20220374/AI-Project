@@ -1,0 +1,33 @@
+{
+  "name": "hard_05",
+  "description": "Hard case 05: five requests across multiple zones.",
+  "start_node": "Main_Gate",
+  "capacity": 2,
+  "requests": [
+    {
+      "id": "r1",
+      "pickup": "Main_Gate",
+      "drop": "Birla_Museum"
+    },
+    {
+      "id": "r2",
+      "pickup": "Main_Gate",
+      "drop": "Sky_Lawns"
+    },
+    {
+      "id": "r3",
+      "pickup": "Main_Gate",
+      "drop": "Saraswati_Mandir"
+    },
+    {
+      "id": "r4",
+      "pickup": "FD1",
+      "drop": "SAC"
+    },
+    {
+      "id": "r5",
+      "pickup": "Library",
+      "drop": "Gym_Grounds"
+    }
+  ]
+}

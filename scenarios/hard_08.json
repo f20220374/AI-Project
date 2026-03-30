@@ -1,0 +1,33 @@
+{
+  "name": "hard_08",
+  "description": "Hard case 08: five requests across multiple zones.",
+  "start_node": "Main_Gate",
+  "capacity": 2,
+  "requests": [
+    {
+      "id": "r1",
+      "pickup": "Main_Gate",
+      "drop": "IC"
+    },
+    {
+      "id": "r2",
+      "pickup": "Main_Gate",
+      "drop": "SR"
+    },
+    {
+      "id": "r3",
+      "pickup": "Main_Gate",
+      "drop": "ANC"
+    },
+    {
+      "id": "r4",
+      "pickup": "SR",
+      "drop": "Ram"
+    },
+    {
+      "id": "r5",
+      "pickup": "Old_Workshop",
+      "drop": "Sky_Lab"
+    }
+  ]
+}

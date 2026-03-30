@@ -1,0 +1,23 @@
+{
+  "name": "medium_05",
+  "description": "Medium case 05: mixed gate and in-campus pickups.",
+  "start_node": "Main_Gate",
+  "capacity": 2,
+  "requests": [
+    {
+      "id": "r1",
+      "pickup": "Main_Gate",
+      "drop": "Meera"
+    },
+    {
+      "id": "r2",
+      "pickup": "Main_Gate",
+      "drop": "Budh"
+    },
+    {
+      "id": "r3",
+      "pickup": "NAB",
+      "drop": "IPC"
+    }
+  ]
+}

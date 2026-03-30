@@ -1,0 +1,33 @@
+{
+  "name": "hard_10",
+  "description": "Hard case 10: five requests across multiple zones.",
+  "start_node": "Main_Gate",
+  "capacity": 2,
+  "requests": [
+    {
+      "id": "r1",
+      "pickup": "Main_Gate",
+      "drop": "Old_Workshop"
+    },
+    {
+      "id": "r2",
+      "pickup": "Main_Gate",
+      "drop": "New_Workshop"
+    },
+    {
+      "id": "r3",
+      "pickup": "Main_Gate",
+      "drop": "Alumni_Home"
+    },
+    {
+      "id": "r4",
+      "pickup": "Gym_Grounds",
+      "drop": "FD3"
+    },
+    {
+      "id": "r5",
+      "pickup": "IC",
+      "drop": "IPC"
+    }
+  ]
+}

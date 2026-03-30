@@ -1,0 +1,23 @@
+{
+  "name": "medium_06",
+  "description": "Medium case 06: mixed gate and in-campus pickups.",
+  "start_node": "Main_Gate",
+  "capacity": 2,
+  "requests": [
+    {
+      "id": "r1",
+      "pickup": "Main_Gate",
+      "drop": "Sky_Lab"
+    },
+    {
+      "id": "r2",
+      "pickup": "Main_Gate",
+      "drop": "Shankar"
+    },
+    {
+      "id": "r3",
+      "pickup": "Shiv_Ganga",
+      "drop": "Saraswati_Mandir"
+    }
+  ]
+}

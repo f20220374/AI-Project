@@ -1,0 +1,18 @@
+{
+  "name": "easy_10",
+  "description": "Easy case 10: two deliveries from Main Gate.",
+  "start_node": "Main_Gate",
+  "capacity": 2,
+  "requests": [
+    {
+      "id": "r1",
+      "pickup": "Main_Gate",
+      "drop": "LTC"
+    },
+    {
+      "id": "r2",
+      "pickup": "Main_Gate",
+      "drop": "FD2"
+    }
+  ]
+}

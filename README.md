@@ -79,7 +79,7 @@ repo_clone/
     heuristics.py
     main.py
   main.py
-  pyproject.toml
+  requirements.txt
   README.md
 ```
 
@@ -90,7 +90,7 @@ repo_clone/
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install matplotlib
+pip install -r requirements.txt
 ```
 
 No external search or pathfinding library is used for the algorithms.
